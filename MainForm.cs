@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeepMorphy;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -13,31 +14,43 @@ namespace FrequencyAnalysis
     public partial class MainForm : Form
     {
         private const double MARGIN = 0.05;
-        private const int EN_ALPH_FIRST_WORD = 65;
-        private const int EN_ALPH_LAST_WORD = 90;
         private const int RUS_ALPH_FIRST_WORD = 1040;
         private const int RUS_ALPH_LAST_WORD = 1071;
 
         private readonly Point START_POINT;
+        MorphAnalyzer morph;
 
         private Graphics g;
         private Pen pen;
-        private Dictionary<char, int> EnSymbolsCount = new Dictionary<char, int>();
         private Dictionary<char, int> RusSymbolsCount = new Dictionary<char, int>();
-        private List<string> TextWords = new List<string>();
-        private Bitmap gistogrammEn, gistogrammRus;
-        private int EnMaxValue, RusMaxValue;
-        private int scaleXEn, scaleYEn, scaleXRus, scaleYRus;
+        private Dictionary<string, int> WordType;
+        private string[] TextWords;
+        private Bitmap gistogrammRus;
+        private int RusMaxValue, WordTypeMaxCount;
+        private int scaleXRus, scaleYRus;
         private string plainText;
-        
+
+        private readonly char[] separatorsForWords = new char[] { ' ', '.', ',', '<', '>', '"', ':', ';', '-', '+', '=', '\'', '/', '?', '!', '@', '*' };
+        private readonly char[] separatorsForSentences = new char[] { '.', '?', '!'};
+
 
         public MainForm()
         {
             InitializeComponent();
             pen = new Pen(Color.Black, 2f);
             START_POINT = new Point(
-                Convert.ToInt32(AnalyzeGistogrammEn.Width * MARGIN),
-                Convert.ToInt32(AnalyzeGistogrammEn.Height * MARGIN));
+                Convert.ToInt32(AnalyzeGistogrammRus.Width * MARGIN),
+                Convert.ToInt32(AnalyzeGistogrammRus.Height * MARGIN));
+            morph = new MorphAnalyzer();
+        }
+
+        private void WordTypesInit()
+        {
+            WordType = new Dictionary<string, int>();
+            for (int i = 0; i < Constants.types.Length; i++)
+            {
+                WordType.Add(Constants.types[i], 0);
+            }
         }
 
         private void CloseAppBut_Click(object sender, EventArgs e)
@@ -47,9 +60,7 @@ namespace FrequencyAnalysis
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            gistogrammEn = new Bitmap(AnalyzeGistogrammEn.Width, AnalyzeGistogrammEn.Height);
             gistogrammRus = new Bitmap(AnalyzeGistogrammRus.Width, AnalyzeGistogrammRus.Height);
-            ResetGistogramm(gistogrammEn, AnalyzeGistogrammEn);
             ResetGistogramm(gistogrammRus, AnalyzeGistogrammRus);
             
         }
@@ -61,16 +72,27 @@ namespace FrequencyAnalysis
 
         private void AnalyzeSymbolsType_Click(object sender, EventArgs e)
         {
-            ResetGistogramm(gistogrammEn, AnalyzeGistogrammEn);
             ResetGistogramm(gistogrammRus, AnalyzeGistogrammRus);
             SymbolsCountCalculate();
-            BuildGistogrammForSymbols(EnSymbolsCount, EnMaxValue, gistogrammEn, AnalyzeGistogrammEn);
             BuildGistogrammForSymbols(RusSymbolsCount, RusMaxValue, gistogrammRus, AnalyzeGistogrammRus);
         }
 
         private void AnalyzeWordsType_Click(object sender, EventArgs e)
         {
+            ResetGistogramm(gistogrammRus, AnalyzeGistogrammRus);
             WordsCountCalculate();
+            WordTypesInit();
+            var results = morph.Parse(TextWords).ToArray();
+            for(int i = 0; i < results.Length; i++)
+            {
+                WordType[results[i].BestTag["чр"]]++;
+            }
+            WordTypeMaxCount = 0;
+            for (int i = 0; i < Constants.types.Length; i++)
+            {
+                if (WordType[Constants.types[i]] > WordTypeMaxCount) WordTypeMaxCount = WordType[Constants.types[i]];
+            }
+            BuildGistogrammForWords(ref WordType, WordTypeMaxCount, gistogrammRus, AnalyzeGistogrammRus);
         }
 
         private void AnalyzeSentencesType_Click(object sender, EventArgs e)
@@ -115,12 +137,7 @@ namespace FrequencyAnalysis
         /// </summary>
         private void InitDictionaryForSymbols()
         {
-            EnSymbolsCount.Clear();
             RusSymbolsCount.Clear();
-            for(int i = EN_ALPH_FIRST_WORD; i <= EN_ALPH_LAST_WORD; i++)
-            {
-                EnSymbolsCount.Add((char)i, 0);
-            }
             for(int i = RUS_ALPH_FIRST_WORD; i <= RUS_ALPH_LAST_WORD; i++)
             {
                 RusSymbolsCount.Add(Convert.ToChar(i), 0);
@@ -132,27 +149,29 @@ namespace FrequencyAnalysis
         /// </summary>
         private void SymbolsCountCalculate()
         {
-            EnMaxValue = 0;
             RusMaxValue = 0;
             InitDictionaryForSymbols();
             plainText = PlainText.Text.ToUpper();
             for (int i = 0; i < plainText.Length; i++)
             {
-                if (plainText[i] >= EN_ALPH_FIRST_WORD && plainText[i] <= EN_ALPH_LAST_WORD)
-                    EnSymbolsCount[plainText[i]]++;
-                else if (plainText[i] >= RUS_ALPH_FIRST_WORD && plainText[i] <= RUS_ALPH_LAST_WORD)
+                if (plainText[i] >= RUS_ALPH_FIRST_WORD && plainText[i] <= RUS_ALPH_LAST_WORD)
                     RusSymbolsCount[plainText[i]]++;
-            }
-
-            for (int i = EN_ALPH_FIRST_WORD; i <= EN_ALPH_LAST_WORD; i++)
-            {
-                if (EnSymbolsCount[(char)i] > EnMaxValue) EnMaxValue = EnSymbolsCount[(char)i];
             }
 
             for (int i = RUS_ALPH_FIRST_WORD; i <= RUS_ALPH_LAST_WORD; i++)
             {
                 if (RusSymbolsCount[(char)i] > RusMaxValue) RusMaxValue = RusSymbolsCount[(char)i];
             }
+        }
+
+        private string MakeVertical(string plainString)
+        {
+            string vertString = "";
+            for(int i = 0; i < plainString.Length; i++)
+            {
+                vertString += plainString[i] + "\n";
+            }
+            return vertString;
         }
 
         /// <summary>
@@ -166,32 +185,55 @@ namespace FrequencyAnalysis
         private void BuildGistogrammForSymbols(Dictionary<char, int> alphSymbolsCount, int MaxCount, Bitmap alphMap, PictureBox PB)
         {
             if(MaxCount == 0) return;
-            int scaleX = Convert.ToInt32(alphMap.Width * 0.9 / alphSymbolsCount.Count);
-            int scaleY = Convert.ToInt32(alphMap.Height * 0.9 / MaxCount);
+            float scaleX = Convert.ToInt32(alphMap.Width * 0.9 / alphSymbolsCount.Count);
+            float scaleY = Convert.ToInt32(alphMap.Height * 0.9 / MaxCount);
             g = Graphics.FromImage(alphMap);
             List<int> values = alphSymbolsCount.Values.ToList();
             List<char> keys = alphSymbolsCount.Keys.ToList();
             for (int i = 0; i < values.Count; i++)
             {
-                int x = START_POINT.X + scaleX * i;
-                int y = ((MaxCount - values[i]) * scaleY + START_POINT.Y) ;
-                int height = Convert.ToInt32(alphMap.Height * (1-  2 * MARGIN)) - y + START_POINT.Y;
-                if (values[i] != 0) g.DrawRectangle(pen, new Rectangle(x, y, 10, height));
+                float x = START_POINT.X + scaleX * i;
+                float y = ((MaxCount - values[i]) * scaleY + START_POINT.Y) ;
+                float height = Convert.ToInt32(alphMap.Height * (1-  2 * MARGIN)) - y + START_POINT.Y;
+                if (values[i] != 0) g.DrawRectangle(pen, new Rectangle(Convert.ToInt32(x), Convert.ToInt32(y), 10, Convert.ToInt32(height)));
                 else y = Convert.ToInt32(alphMap.Height * (1 - MARGIN));
-                g.DrawString(Convert.ToString(keys[i]), new Font("Arial", 9), Brushes.Black, new Point(START_POINT.X + scaleX * i, alphMap.Height - 20));
-                g.DrawString(Convert.ToString(values[i].ToString()), new Font("Arial", 9), Brushes.Black, new Point(START_POINT.X + scaleX * i, y - 20));
+                g.DrawString(MakeVertical(Convert.ToString(keys[i])), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), alphMap.Height - 20));
+                g.DrawString(Convert.ToString(values[i].ToString()), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), Convert.ToInt32(y) - 20));
 
             }
             g.Dispose();
             PB.Image = alphMap;
         }
 
-        private void WordsCountCalculate()
+        private void BuildGistogrammForWords(ref Dictionary<string, int> wordType, int MaxCount, Bitmap map, PictureBox PB)
+        {
+            if (MaxCount == 0) return;
+            float scaleX = Convert.ToInt32(map.Width * 0.9 / wordType.Count);
+            float scaleY = Convert.ToInt32(map.Height * 0.9 / MaxCount);
+            g = Graphics.FromImage(map);
+            List<int> values = wordType.Values.ToList();
+            List<string> keys = wordType.Keys.ToList();
+            for (int i = 0; i < values.Count; i++)
+            {
+                float x = START_POINT.X + scaleX * i;
+                float y = ((MaxCount - values[i]) * scaleY + START_POINT.Y);
+                float height = Convert.ToInt32(map.Height * (1 - 2 * MARGIN)) - y + START_POINT.Y;
+                if (values[i] != 0) g.DrawRectangle(pen, new Rectangle(Convert.ToInt32(x), Convert.ToInt32(y), 10, Convert.ToInt32(height)));
+                else y = Convert.ToInt32(map.Height * (1 - MARGIN));
+                g.DrawString(MakeVertical(Convert.ToString(keys[i])), new Font("Arial", 6), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), map.Height - 45));
+                g.DrawString(Convert.ToString(values[i].ToString()), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), Convert.ToInt32(y) - 20));
+
+            }
+            g.Dispose();
+            PB.Image = map;
+        }
+
+        private int WordsCountCalculate()
         {
             plainText = PlainText.Text;
-            char[] separators = new char[] { ' ', '.', ',', '<', '>', '"', ':', ';', '-', '+', '=', '\'', '/', '?', '!', '@', '*' };
-
-            TextWords = plainText.Split(separators, StringSplitOptions.RemoveEmptyEntries).ToList();
+            
+            TextWords = plainText.Split(separatorsForWords, StringSplitOptions.RemoveEmptyEntries).ToArray();
+            return TextWords.Length;
         }
     }
 }

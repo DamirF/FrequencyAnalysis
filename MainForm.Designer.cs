@@ -35,11 +35,9 @@
             this.AnalyzeSentencesType = new System.Windows.Forms.Button();
             this.AnalyzeWordsType = new System.Windows.Forms.Button();
             this.AnalyzeSymbolsType = new System.Windows.Forms.Button();
-            this.AnalyzeGistogrammEn = new System.Windows.Forms.PictureBox();
             this.AnalyzeGistogrammRus = new System.Windows.Forms.PictureBox();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.AnalyzeGistogrammEn)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.AnalyzeGistogrammRus)).BeginInit();
             this.SuspendLayout();
             // 
@@ -115,19 +113,11 @@
             this.AnalyzeSymbolsType.UseVisualStyleBackColor = true;
             this.AnalyzeSymbolsType.Click += new System.EventHandler(this.AnalyzeSymbolsType_Click);
             // 
-            // AnalyzeGistogrammEn
-            // 
-            this.AnalyzeGistogrammEn.Location = new System.Drawing.Point(930, 42);
-            this.AnalyzeGistogrammEn.Name = "AnalyzeGistogrammEn";
-            this.AnalyzeGistogrammEn.Size = new System.Drawing.Size(960, 490);
-            this.AnalyzeGistogrammEn.TabIndex = 3;
-            this.AnalyzeGistogrammEn.TabStop = false;
-            // 
             // AnalyzeGistogrammRus
             // 
-            this.AnalyzeGistogrammRus.Location = new System.Drawing.Point(930, 574);
+            this.AnalyzeGistogrammRus.Location = new System.Drawing.Point(930, 42);
             this.AnalyzeGistogrammRus.Name = "AnalyzeGistogrammRus";
-            this.AnalyzeGistogrammRus.Size = new System.Drawing.Size(960, 490);
+            this.AnalyzeGistogrammRus.Size = new System.Drawing.Size(960, 1022);
             this.AnalyzeGistogrammRus.TabIndex = 4;
             this.AnalyzeGistogrammRus.TabStop = false;
             // 
@@ -137,7 +127,6 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1920, 1080);
             this.Controls.Add(this.AnalyzeGistogrammRus);
-            this.Controls.Add(this.AnalyzeGistogrammEn);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.PlainText);
             this.Controls.Add(this.panel1);
@@ -148,7 +137,6 @@
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.panel1.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.AnalyzeGistogrammEn)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.AnalyzeGistogrammRus)).EndInit();
             this.ResumeLayout(false);
 
@@ -163,7 +151,6 @@
         private System.Windows.Forms.Button AnalyzeSentencesType;
         private System.Windows.Forms.Button AnalyzeWordsType;
         private System.Windows.Forms.Button AnalyzeSymbolsType;
-        private System.Windows.Forms.PictureBox AnalyzeGistogrammEn;
         private System.Windows.Forms.PictureBox AnalyzeGistogrammRus;
     }
 }
