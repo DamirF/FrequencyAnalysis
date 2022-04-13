@@ -24,13 +24,16 @@ namespace FrequencyAnalysis
         private Pen pen;
         private Dictionary<char, int> RusSymbolsCount = new Dictionary<char, int>();
         private Dictionary<string, int> WordType;
+        private Dictionary<int, int> SentenceType = new Dictionary<int, int>();
         private string[] TextWords;
+        private string[] TextSentence;
+        private List<List<string>> SentencesWords = new List<List<string>>();
         private Bitmap gistogrammRus;
-        private int RusMaxValue, WordTypeMaxCount;
+        private int RusMaxValue, WordTypeMaxCount, SentencesWordsMaxCount, SentencesWordsMinCount;
         private int scaleXRus, scaleYRus;
         private string plainText;
 
-        private readonly char[] separatorsForWords = new char[] { ' ', '.', ',', '<', '>', '"', ':', ';', '-', '+', '=', '\'', '/', '?', '!', '@', '*' };
+        private readonly char[] separatorsForWords = new char[] { ' ', '.', ',', '<', '>', '"', ':', ';', '-', '+', '=', '\'', '/', '?', '!', '@', '*', '»' , '«' };
         private readonly char[] separatorsForSentences = new char[] { '.', '?', '!'};
 
 
@@ -97,7 +100,43 @@ namespace FrequencyAnalysis
 
         private void AnalyzeSentencesType_Click(object sender, EventArgs e)
         {
+            SentencesWords.Clear();
+            plainText = PlainText.Text;
+            TextSentence = plainText.Split(separatorsForSentences, StringSplitOptions.RemoveEmptyEntries);
 
+            for(int i = 0; i < TextSentence.Length; i++)
+            {
+                SentencesWords.Add(TextSentence[i].Split(separatorsForWords, StringSplitOptions.RemoveEmptyEntries).ToList());
+            }
+            CalculateWordsCountInSentences();
+            ResetGistogramm(gistogrammRus, AnalyzeGistogrammRus);
+            BuildGistogramForSecuences(ref SentenceType, SentencesWordsMaxCount, SentencesWordsMinCount, gistogrammRus, AnalyzeGistogrammRus);
+        }
+
+        private void InitDictForSentences()
+        {
+            SentenceType.Clear();
+            List<int> vs = new List<int>();
+            for (int i = 0; i < SentencesWords.Count; i++)
+            {
+                if(!vs.Contains(SentencesWords[i].Count))
+                    vs.Add(SentencesWords[i].Count);
+            }
+            for(int j = 0; j < vs.Count; j++)
+            {
+                SentenceType.Add(vs[j], 0);
+            }
+            SentencesWordsMaxCount = vs.Max();
+            SentencesWordsMinCount = vs.Min();
+        }
+
+        private void CalculateWordsCountInSentences()
+        {
+            InitDictForSentences();
+            for(int i = 0; i < SentencesWords.Count; i++)
+            {
+                SentenceType[SentencesWords[i].Count]++;
+            }
         }
 
         /// <summary>
@@ -223,6 +262,29 @@ namespace FrequencyAnalysis
                 g.DrawString(MakeVertical(Convert.ToString(keys[i])), new Font("Arial", 6), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), map.Height - 45));
                 g.DrawString(Convert.ToString(values[i].ToString()), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), Convert.ToInt32(y) - 20));
 
+            }
+            g.Dispose();
+            PB.Image = map;
+        }
+
+        private void BuildGistogramForSecuences(ref Dictionary<int,int> sentenceType, int MaxCount, int MinCount, Bitmap map, PictureBox PB)
+        {
+            if (MaxCount == 0) return;
+            float scaleX = Convert.ToInt32(map.Width * 0.9 / sentenceType.Count);
+            float scaleY = Convert.ToInt32(map.Height * 0.9 / MaxCount);
+            g = Graphics.FromImage(map);
+            List<int> values = sentenceType.Values.ToList();
+            List<int> keys = sentenceType.Keys.ToList();
+            keys.Sort();
+            for(int i = 0; i < values.Count; i++)
+            {
+                float x = START_POINT.X + scaleX * i;
+                float y = ((MaxCount - values[i]) * scaleY + START_POINT.Y);
+                float height = Convert.ToInt32(map.Height * (1 - 2 * MARGIN)) - y + START_POINT.Y;
+                if (values[i] != 0) g.DrawRectangle(pen, new Rectangle(Convert.ToInt32(x), Convert.ToInt32(y), 10, Convert.ToInt32(height)));
+                else y = Convert.ToInt32(map.Height * (1 - MARGIN));
+                g.DrawString(Convert.ToString(keys[i]), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), map.Height - 30));
+                g.DrawString(Convert.ToString(values[i].ToString()), new Font("Arial", 9), Brushes.Black, new Point(Convert.ToInt32(START_POINT.X + scaleX * i), Convert.ToInt32(y) - 20));
             }
             g.Dispose();
             PB.Image = map;
